@@ -1,28 +1,45 @@
-using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using SomeNamespace.Models;
-using System;
-
-var company = new Company
-{
-    Name = "Tech Solutions",
-    Address = "123 Main St, Tech City",
-    EmployeesCount = 100
-};
-
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Configuration
+    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+    .AddXmlFile("companies.xml", optional: true, reloadOnChange: true)
+    .AddIniFile("companies.ini", optional: true, reloadOnChange: true);
+
 var app = builder.Build();
 
-app.MapGet("/", () => "Hello World!");
-
-app.MapGet("/company", () => company);
-
-app.MapGet("/random", () =>
+app.MapGet("/", (IConfiguration config) =>
 {
-    var random = new Random();
-    int randomNumber = random.Next(0, 101);
-    return randomNumber;
+    var companies = new List<Company>();
+
+    // JSON-файл
+    companies.AddRange(config.GetSection("Companies").Get<List<Company>>());
+
+    // XML-файл
+    var xmlCompanies = config.GetSection("Companies").GetChildren().Select(x => new Company
+    {
+        Name = x["Name"],
+        Employees = int.Parse(x["Employees"])
+    });
+    companies.AddRange(xmlCompanies);
+
+    // INI-файл
+    var iniCompanies = new List<Company>
+    {
+        new Company { Name = "Microsoft", Employees = int.Parse(config["Microsoft:Employees"]) },
+        new Company { Name = "Apple", Employees = int.Parse(config["Apple:Employees"]) },
+        new Company { Name = "Google", Employees = int.Parse(config["Google:Employees"]) }
+    };
+    companies.AddRange(iniCompanies);
+
+    var topCompany = companies.OrderByDescending(c => c.Employees).FirstOrDefault();
+
+    return $"Компанія з найбільшою кількістю співробітників: {topCompany.Name}, {topCompany.Employees} співробітників";
 });
 
 app.Run();
+
+public class Company
+{
+    public string Name { get; set; }
+    public int Employees { get; set; }
+}
