@@ -1,21 +1,15 @@
+using MyCalcApp.Services;
+
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+builder.Services.AddTransient<CalcService>();
+builder.Services.AddTransient<TimeService>();
+
+builder.Services.AddControllers();
 
 var app = builder.Build();
 
-app.MapGet("/about", (IConfiguration config) =>
-{
-    var userInfo = config.GetSection("UserInfo").Get<UserInfo>();
-
-    return $"Ім'я: {userInfo.Name}\nВік: {userInfo.Age}\nМісто: {userInfo.City}";
-});
+// маршрути
+app.MapControllers();
 
 app.Run();
-
-public class UserInfo
-{
-    public string Name { get; set; }
-    public int Age { get; set; }
-    public string City { get; set; }
-}
