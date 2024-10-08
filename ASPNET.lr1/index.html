@@ -1,0 +1,22 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cookies Form</title>
+</head>
+<body>
+    <h1>Saving Value in Cookies</h1>
+    <form action="/set-cookie" method="post">
+        <label for="value">Enter a value:</label>
+        <input type="text" id="value" name="value" required>
+
+        <label for="expiry">Enter date and time (YYYY-MM-DDTHH:MM):</label>
+        <input type="datetime-local" id="expiry" name="expiry" required>
+
+        <button type="submit">Save to Cookies</button>
+    </form>
+    <br>
+    <a href="/check-cookies">Check Cookies</a>
+</body>
+</html>

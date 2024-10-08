@@ -1,61 +1,75 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
-using System.Collections.Generic;
+using Microsoft.Extensions.Logging;
+using System;
 using System.IO;
-using System.Text.Json;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
-
-builder.Services.AddRouting();
+builder.Services.AddLogging();
 
 var app = builder.Build();
 
-Dictionary<int, string> LoadUsers(string filePath)
+// Middleware
+app.Use(async (context, next) =>
 {
-    var json = File.ReadAllText(filePath);
-    return JsonSerializer.Deserialize<Dictionary<int, string>>(json);
-}
-
-List<string> LoadBooks(string filePath)
-{
-    var json = File.ReadAllText(filePath);
-    return JsonSerializer.Deserialize<List<string>>(json);
-}
-
-var users = LoadUsers("users.json");
-var books = LoadBooks("books.json");
-
-app.MapGet("/Library", async context =>
-{
-    await context.Response.WriteAsync("Welcome to the Library!");
-});
-
-app.MapGet("/Library/Books", async context =>
-{
-    var json = JsonSerializer.Serialize(books);
-    context.Response.ContentType = "application/json";
-    await context.Response.WriteAsync(json);
-});
-
-app.MapGet("/Library/Profile/{id:int?}", async context =>
-{
-    if (context.Request.RouteValues.TryGetValue("id", out var idValue) && idValue is string idStr && int.TryParse(idStr, out int id))
+    try
     {
-        if (users.ContainsKey(id))
+        await next();
+    }
+    catch (Exception ex)
+    {
+        var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "An error occurred");
+
+        await File.AppendAllTextAsync("errors.log", $"{DateTime.Now}: {ex.Message}\n");
+
+        context.Response.StatusCode = 500;
+        await context.Response.WriteAsync("An error occurred, please try again.");
+    }
+});
+
+app.MapPost("/set-cookie", async context =>
+{
+    var form = await context.Request.ReadFormAsync();
+    var value = form["value"].ToString();
+    var expiryDateTime = DateTime.Parse(form["expiry"]);
+
+    var cookieOptions = new CookieOptions
+    {
+        Expires = expiryDateTime,
+        HttpOnly = true
+    };
+
+    var encodedValue = Convert.ToBase64String(Encoding.UTF8.GetBytes(value));
+    context.Response.Cookies.Append("MyCookie", encodedValue, cookieOptions);
+
+    await context.Response.WriteAsync("Cookie has been successfully saved!");
+});
+
+app.MapGet("/check-cookie", context =>
+{
+    if (context.Request.Cookies.TryGetValue("MyCookie", out var cookieValue))
+    {
+        try
         {
-            await context.Response.WriteAsync(users[id]);
+            var decodedValue = Encoding.UTF8.GetString(Convert.FromBase64String(cookieValue));
+            return context.Response.WriteAsync($"Value in Cookies: {decodedValue}");
         }
-        else
+        catch (FormatException)
         {
-            context.Response.StatusCode = 404;
-            await context.Response.WriteAsync("User not found.");
+            return context.Response.WriteAsync("Invalid encoding in Cookies.");
         }
     }
     else
     {
-        await context.Response.WriteAsync("Default User: You are logged in as the default user. Idk this is some info");
+        return context.Response.WriteAsync("Cookies not found.");
     }
 });
 
+app.MapGet("/", async context =>
+{
+    await context.Response.WriteAsync(File.ReadAllText("index.html"));
+});
 app.Run();
