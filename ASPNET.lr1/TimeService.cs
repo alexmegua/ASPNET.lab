@@ -8,19 +8,19 @@ namespace MyCalcApp.Services
 
             if (now.Hours >= 6 && now.Hours < 12)
             {
-                return "Çàðàç ðàíîê";
+                return "Ð—Ð°Ñ€Ð°Ð· Ñ€Ð°Ð½Ð¾Ðº";
             }
             else if (now.Hours >= 12 && now.Hours < 18)
             {
-                return "Çàðàç äåíü";
+                return "Ð—Ð°Ñ€Ð°Ð· Ð´ÐµÐ½ÑŒ";
             }
             else if (now.Hours >= 18 && now.Hours < 24)
             {
-                return "Çàðàç âå÷³ð";
+                return "Ð—Ð°Ñ€Ð°Ð· Ð²ÐµÑ‡Ñ–Ñ€";
             }
             else
             {
-                return "Çàðàç í³÷";
+                return "Ð—Ð°Ñ€Ð°Ð· Ð½Ñ–Ñ‡";
             }
         }
     }
